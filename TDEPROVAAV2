@@ -1,0 +1,1463 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define FILENAME "alunos.dat"
+
+questao 1:
+// Definição da estrutura Aluno
+typedef struct {
+    int matricula;
+    char nome[50];
+    char curso[30];
+    int idade;
+} Aluno;
+
+// Função para incluir um novo aluno
+void incluirAluno() {
+    FILE *file = fopen(FILENAME, "ab");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Aluno aluno;
+    printf("Digite a matrícula do aluno: ");
+    scanf("%d", &aluno.matricula);
+    getchar(); // Limpa o buffer
+    printf("Digite o nome do aluno: ");
+    fgets(aluno.nome, 50, stdin);
+    aluno.nome[strcspn(aluno.nome, "\n")] = '\0'; // Remove o '\n' da string
+    printf("Digite o curso do aluno: ");
+    fgets(aluno.curso, 30, stdin);
+    aluno.curso[strcspn(aluno.curso, "\n")] = '\0'; // Remove o '\n' da string
+    printf("Digite a idade do aluno: ");
+    scanf("%d", &aluno.idade);
+
+    fwrite(&aluno, sizeof(Aluno), 1, file);
+    fclose(file);
+
+    printf("Aluno incluído com sucesso.\n");
+}
+
+// Função para alterar as informações de um aluno
+void alterarAluno() {
+    FILE *file = fopen(FILENAME, "r+b");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int matricula;
+    printf("Digite a matrícula do aluno a ser alterado: ");
+    scanf("%d", &matricula);
+
+    Aluno aluno;
+    int found = 0;
+    while (fread(&aluno, sizeof(Aluno), 1, file)) {
+        if (aluno.matricula == matricula) {
+            found = 1;
+            printf("Aluno encontrado: %s\n", aluno.nome);
+            printf("Digite o novo nome (ou pressione Enter para manter): ");
+            getchar(); // Limpa o buffer
+            char novoNome[50];
+            fgets(novoNome, 50, stdin);
+            if (strlen(novoNome) > 1) {
+                novoNome[strcspn(novoNome, "\n")] = '\0'; // Remove o '\n'
+                strcpy(aluno.nome, novoNome);
+            }
+
+            printf("Digite o novo curso (ou pressione Enter para manter): ");
+            char novoCurso[30];
+            fgets(novoCurso, 30, stdin);
+            if (strlen(novoCurso) > 1) {
+                novoCurso[strcspn(novoCurso, "\n")] = '\0'; // Remove o '\n'
+                strcpy(aluno.curso, novoCurso);
+            }
+
+            printf("Digite a nova idade (ou pressione Enter para manter): ");
+            int novaIdade;
+            if (scanf("%d", &novaIdade) == 1) {
+                aluno.idade = novaIdade;
+            }
+
+            fseek(file, -sizeof(Aluno), SEEK_CUR); // Move o ponteiro para a posição do aluno
+            fwrite(&aluno, sizeof(Aluno), 1, file);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Aluno com matrícula %d não encontrado.\n", matricula);
+    }
+
+    fclose(file);
+}
+
+// Função para excluir um aluno
+void excluirAluno() {
+    FILE *file = fopen(FILENAME, "r+b");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int matricula;
+    printf("Digite a matrícula do aluno a ser excluído: ");
+    scanf("%d", &matricula);
+
+    FILE *tempFile = fopen("temp.dat", "wb");
+    if (tempFile == NULL) {
+        printf("Erro ao criar arquivo temporário.\n");
+        fclose(file);
+        return;
+    }
+
+    Aluno aluno;
+    int found = 0;
+    while (fread(&aluno, sizeof(Aluno), 1, file)) {
+        if (aluno.matricula != matricula) {
+            fwrite(&aluno, sizeof(Aluno), 1, tempFile);
+        } else {
+            found = 1;
+        }
+    }
+
+    fclose(file);
+    fclose(tempFile);
+
+    remove(FILENAME);
+    rename("temp.dat", FILENAME);
+
+    if (found) {
+        printf("Aluno excluído com sucesso.\n");
+    } else {
+        printf("Aluno com matrícula %d não encontrado.\n", matricula);
+    }
+}
+
+// Função para consultar informações de um aluno
+void consultarAluno() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int matricula;
+    printf("Digite a matrícula do aluno a ser consultado: ");
+    scanf("%d", &matricula);
+
+    Aluno aluno;
+    int found = 0;
+    while (fread(&aluno, sizeof(Aluno), 1, file)) {
+        if (aluno.matricula == matricula) {
+            found = 1;
+            printf("Matrícula: %d\n", aluno.matricula);
+            printf("Nome: %s\n", aluno.nome);
+            printf("Curso: %s\n", aluno.curso);
+            printf("Idade: %d\n", aluno.idade);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Aluno com matrícula %d não encontrado.\n", matricula);
+    }
+
+    fclose(file);
+}
+
+// Função para listar todos os alunos cadastrados
+void listarAlunos() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Aluno aluno;
+    int found = 0;
+    while (fread(&aluno, sizeof(Aluno), 1, file)) {
+        printf("Matrícula: %d\n", aluno.matricula);
+        printf("Nome: %s\n", aluno.nome);
+        printf("Curso: %s\n", aluno.curso);
+        printf("Idade: %d\n", aluno.idade);
+        printf("----------------------------\n");
+        found = 1;
+    }
+
+    if (!found) {
+        printf("Nenhum aluno cadastrado.\n");
+    }
+
+    fclose(file);
+}
+
+int main() {
+    int opcao;
+
+    do {
+        printf("\nGestão de Alunos\n");
+        printf("1. Incluir um novo aluno\n");
+        printf("2. Alterar informações de um aluno\n");
+        printf("3. Excluir um aluno\n");
+        printf("4. Consultar informações de um aluno\n");
+        printf("5. Listar todos os alunos\n");
+        printf("6. Sair\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1:
+                incluirAluno();
+                break;
+            case 2:
+                alterarAluno();
+                break;
+            case 3:
+                excluirAluno();
+                break;
+            case 4:
+                consultarAluno();
+                break;
+            case 5:
+                listarAlunos();
+                break;
+            case 6:
+                printf("Saindo...\n");
+                break;
+            default:
+                printf("Opção inválida!\n");
+                break;
+        }
+    } while (opcao != 6);
+
+    return 0;
+}
+
+questao 2:
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define FILENAME "funcionarios.dat"
+
+// Definição da estrutura Funcionario
+typedef struct {
+    int id;
+    char nome[50];
+    char cargo[30];
+    int salario;
+} Funcionario;
+
+// Função para cadastrar um novo funcionário
+void cadastrarFuncionario() {
+    FILE *file = fopen(FILENAME, "ab");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Funcionario funcionario;
+    printf("Digite o ID do funcionário: ");
+    scanf("%d", &funcionario.id);
+    getchar(); // Limpa o buffer
+    printf("Digite o nome do funcionário: ");
+    fgets(funcionario.nome, 50, stdin);
+    funcionario.nome[strcspn(funcionario.nome, "\n")] = '\0'; // Remove o '\n' da string
+    printf("Digite o cargo do funcionário: ");
+    fgets(funcionario.cargo, 30, stdin);
+    funcionario.cargo[strcspn(funcionario.cargo, "\n")] = '\0'; // Remove o '\n' da string
+    printf("Digite o salário do funcionário (em reais): ");
+    scanf("%d", &funcionario.salario);
+
+    fwrite(&funcionario, sizeof(Funcionario), 1, file);
+    fclose(file);
+
+    printf("Funcionário cadastrado com sucesso.\n");
+}
+
+// Função para alterar dados de um funcionário
+void alterarFuncionario() {
+    FILE *file = fopen(FILENAME, "r+b");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int id;
+    printf("Digite o ID do funcionário a ser alterado: ");
+    scanf("%d", &id);
+
+    Funcionario funcionario;
+    int found = 0;
+    while (fread(&funcionario, sizeof(Funcionario), 1, file)) {
+        if (funcionario.id == id) {
+            found = 1;
+            printf("Funcionário encontrado: %s\n", funcionario.nome);
+            printf("Digite o novo cargo (ou pressione Enter para manter): ");
+            getchar(); // Limpa o buffer
+            char novoCargo[30];
+            fgets(novoCargo, 30, stdin);
+            if (strlen(novoCargo) > 1) {
+                novoCargo[strcspn(novoCargo, "\n")] = '\0'; // Remove o '\n'
+                strcpy(funcionario.cargo, novoCargo);
+            }
+
+            printf("Digite o novo salário (ou 0 para manter): ");
+            int novoSalario;
+            scanf("%d", &novoSalario);
+            if (novoSalario > 0) {
+                funcionario.salario = novoSalario;
+            }
+
+            fseek(file, -sizeof(Funcionario), SEEK_CUR); // Move o ponteiro para a posição do funcionário
+            fwrite(&funcionario, sizeof(Funcionario), 1, file);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Funcionário com ID %d não encontrado.\n", id);
+    }
+
+    fclose(file);
+}
+
+// Função para excluir um funcionário
+void excluirFuncionario() {
+    FILE *file = fopen(FILENAME, "r+b");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int id;
+    printf("Digite o ID do funcionário a ser excluído: ");
+    scanf("%d", &id);
+
+    FILE *tempFile = fopen("temp.dat", "wb");
+    if (tempFile == NULL) {
+        printf("Erro ao criar arquivo temporário.\n");
+        fclose(file);
+        return;
+    }
+
+    Funcionario funcionario;
+    int found = 0;
+    while (fread(&funcionario, sizeof(Funcionario), 1, file)) {
+        if (funcionario.id != id) {
+            fwrite(&funcionario, sizeof(Funcionario), 1, tempFile);
+        } else {
+            found = 1;
+        }
+    }
+
+    fclose(file);
+    fclose(tempFile);
+
+    remove(FILENAME);
+    rename("temp.dat", FILENAME);
+
+    if (found) {
+        printf("Funcionário excluído com sucesso.\n");
+    } else {
+        printf("Funcionário com ID %d não encontrado.\n", id);
+    }
+}
+
+// Função para consultar informações de um funcionário
+void consultarFuncionario() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int id;
+    printf("Digite o ID do funcionário a ser consultado: ");
+    scanf("%d", &id);
+
+    Funcionario funcionario;
+    int found = 0;
+    while (fread(&funcionario, sizeof(Funcionario), 1, file)) {
+        if (funcionario.id == id) {
+            found = 1;
+            printf("ID: %d\n", funcionario.id);
+            printf("Nome: %s\n", funcionario.nome);
+            printf("Cargo: %s\n", funcionario.cargo);
+            printf("Salário: %d reais\n", funcionario.salario);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Funcionário com ID %d não encontrado.\n", id);
+    }
+
+    fclose(file);
+}
+
+// Função para listar todos os funcionários cadastrados
+void listarFuncionarios() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Funcionario funcionario;
+    int found = 0;
+    while (fread(&funcionario, sizeof(Funcionario), 1, file)) {
+        printf("ID: %d\n", funcionario.id);
+        printf("Nome: %s\n", funcionario.nome);
+        printf("Cargo: %s\n", funcionario.cargo);
+        printf("Salário: %d reais\n", funcionario.salario);
+        printf("----------------------------\n");
+        found = 1;
+    }
+
+    if (!found) {
+        printf("Nenhum funcionário cadastrado.\n");
+    }
+
+    fclose(file);
+}
+
+int main() {
+    int opcao;
+
+    do {
+        printf("\nGestão de Funcionários\n");
+        printf("1. Cadastrar um novo funcionário\n");
+        printf("2. Alterar dados de um funcionário\n");
+        printf("3. Excluir um funcionário\n");
+        printf("4. Consultar informações de um funcionário\n");
+        printf("5. Listar todos os funcionários\n");
+        printf("6. Sair\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1:
+                cadastrarFuncionario();
+                break;
+            case 2:
+                alterarFuncionario();
+                break;
+            case 3:
+                excluirFuncionario();
+                break;
+            case 4:
+                consultarFuncionario();
+                break;
+            case 5:
+                listarFuncionarios();
+                break;
+            case 6:
+                printf("Saindo...\n");
+                break;
+            default:
+                printf("Opção inválida!\n");
+                break;
+        }
+    } while (opcao != 6);
+
+    return 0;
+}
+
+
+questao 3:
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define FILENAME "livros.dat"
+
+// Definição da estrutura Livro
+typedef struct {
+    int codigo;
+    char titulo[50];
+    char autor[50];
+    int ano;
+} Livro;
+
+// Função para adicionar um novo livro ao catálogo
+void adicionarLivro() {
+    FILE *file = fopen(FILENAME, "ab");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Livro livro;
+    printf("Digite o código do livro: ");
+    scanf("%d", &livro.codigo);
+    getchar(); // Limpa o buffer
+    printf("Digite o título do livro: ");
+    fgets(livro.titulo, 50, stdin);
+    livro.titulo[strcspn(livro.titulo, "\n")] = '\0'; // Remove o '\n' da string
+    printf("Digite o nome do autor: ");
+    fgets(livro.autor, 50, stdin);
+    livro.autor[strcspn(livro.autor, "\n")] = '\0'; // Remove o '\n' da string
+    printf("Digite o ano de publicação: ");
+    scanf("%d", &livro.ano);
+
+    fwrite(&livro, sizeof(Livro), 1, file);
+    fclose(file);
+
+    printf("Livro adicionado com sucesso.\n");
+}
+
+// Função para alterar os dados de um livro
+void alterarLivro() {
+    FILE *file = fopen(FILENAME, "r+b");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int codigo;
+    printf("Digite o código do livro a ser alterado: ");
+    scanf("%d", &codigo);
+
+    Livro livro;
+    int found = 0;
+    while (fread(&livro, sizeof(Livro), 1, file)) {
+        if (livro.codigo == codigo) {
+            found = 1;
+            printf("Livro encontrado: %s\n", livro.titulo);
+            printf("Digite o novo título (ou pressione Enter para manter): ");
+            getchar(); // Limpa o buffer
+            char novoTitulo[50];
+            fgets(novoTitulo, 50, stdin);
+            if (strlen(novoTitulo) > 1) {
+                novoTitulo[strcspn(novoTitulo, "\n")] = '\0'; // Remove o '\n'
+                strcpy(livro.titulo, novoTitulo);
+            }
+
+            printf("Digite o novo autor (ou pressione Enter para manter): ");
+            char novoAutor[50];
+            fgets(novoAutor, 50, stdin);
+            if (strlen(novoAutor) > 1) {
+                novoAutor[strcspn(novoAutor, "\n")] = '\0'; // Remove o '\n'
+                strcpy(livro.autor, novoAutor);
+            }
+
+            printf("Digite o novo ano de publicação (ou 0 para manter): ");
+            int novoAno;
+            scanf("%d", &novoAno);
+            if (novoAno > 0) {
+                livro.ano = novoAno;
+            }
+
+            fseek(file, -sizeof(Livro), SEEK_CUR); // Move o ponteiro para a posição do livro
+            fwrite(&livro, sizeof(Livro), 1, file);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Livro com código %d não encontrado.\n", codigo);
+    }
+
+    fclose(file);
+}
+
+// Função para excluir um livro pelo código
+void excluirLivro() {
+    FILE *file = fopen(FILENAME, "r+b");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int codigo;
+    printf("Digite o código do livro a ser excluído: ");
+    scanf("%d", &codigo);
+
+    FILE *tempFile = fopen("temp.dat", "wb");
+    if (tempFile == NULL) {
+        printf("Erro ao criar arquivo temporário.\n");
+        fclose(file);
+        return;
+    }
+
+    Livro livro;
+    int found = 0;
+    while (fread(&livro, sizeof(Livro), 1, file)) {
+        if (livro.codigo != codigo) {
+            fwrite(&livro, sizeof(Livro), 1, tempFile);
+        } else {
+            found = 1;
+        }
+    }
+
+    fclose(file);
+    fclose(tempFile);
+
+    remove(FILENAME);
+    rename("temp.dat", FILENAME);
+
+    if (found) {
+        printf("Livro excluído com sucesso.\n");
+    } else {
+        printf("Livro com código %d não encontrado.\n", codigo);
+    }
+}
+
+// Função para consultar informações de um livro pelo código
+void consultarLivro() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int codigo;
+    printf("Digite o código do livro a ser consultado: ");
+    scanf("%d", &codigo);
+
+    Livro livro;
+    int found = 0;
+    while (fread(&livro, sizeof(Livro), 1, file)) {
+        if (livro.codigo == codigo) {
+            found = 1;
+            printf("Código: %d\n", livro.codigo);
+            printf("Título: %s\n", livro.titulo);
+            printf("Autor: %s\n", livro.autor);
+            printf("Ano de publicação: %d\n", livro.ano);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Livro com código %d não encontrado.\n", codigo);
+    }
+
+    fclose(file);
+}
+
+// Função para listar todos os livros cadastrados
+void listarLivros() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Livro livro;
+    int found = 0;
+    while (fread(&livro, sizeof(Livro), 1, file)) {
+        printf("Código: %d\n", livro.codigo);
+        printf("Título: %s\n", livro.titulo);
+        printf("Autor: %s\n", livro.autor);
+        printf("Ano de publicação: %d\n", livro.ano);
+        printf("----------------------------\n");
+        found = 1;
+    }
+
+    if (!found) {
+        printf("Nenhum livro cadastrado.\n");
+    }
+
+    fclose(file);
+}
+
+int main() {
+    int opcao;
+
+    do {
+        printf("\nGestão de Catálogo de Livros\n");
+        printf("1. Adicionar um novo livro ao catálogo\n");
+        printf("2. Alterar os dados de um livro\n");
+        printf("3. Excluir um livro\n");
+        printf("4. Consultar informações de um livro\n");
+        printf("5. Listar todos os livros cadastrados\n");
+        printf("6. Sair\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1:
+                adicionarLivro();
+                break;
+            case 2:
+                alterarLivro();
+                break;
+            case 3:
+                excluirLivro();
+                break;
+            case 4:
+                consultarLivro();
+                break;
+            case 5:
+                listarLivros();
+                break;
+            case 6:
+                printf("Saindo...\n");
+                break;
+            default:
+                printf("Opção inválida!\n");
+                break;
+        }
+    } while (opcao != 6);
+
+    return 0;
+}
+
+questao  4:
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define FILENAME "veiculos.dat"
+
+// Definição da estrutura Veículo
+typedef struct {
+    int id;
+    char modelo[50];
+    char placa[10];
+    int ano;
+} Veiculo;
+
+// Função para adicionar um novo veículo ao sistema
+void adicionarVeiculo() {
+    FILE *file = fopen(FILENAME, "ab");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Veiculo veiculo;
+    printf("Digite o ID do veículo: ");
+    scanf("%d", &veiculo.id);
+    getchar(); // Limpa o buffer
+    printf("Digite o modelo do veículo: ");
+    fgets(veiculo.modelo, 50, stdin);
+    veiculo.modelo[strcspn(veiculo.modelo, "\n")] = '\0'; // Remove o '\n' da string
+    printf("Digite a placa do veículo: ");
+    fgets(veiculo.placa, 10, stdin);
+    veiculo.placa[strcspn(veiculo.placa, "\n")] = '\0'; // Remove o '\n' da string
+    printf("Digite o ano de fabricação do veículo: ");
+    scanf("%d", &veiculo.ano);
+
+    fwrite(&veiculo, sizeof(Veiculo), 1, file);
+    fclose(file);
+
+    printf("Veículo adicionado com sucesso.\n");
+}
+
+// Função para alterar os dados de um veículo
+void alterarVeiculo() {
+    FILE *file = fopen(FILENAME, "r+b");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int id;
+    printf("Digite o ID do veículo a ser alterado: ");
+    scanf("%d", &id);
+
+    Veiculo veiculo;
+    int found = 0;
+    while (fread(&veiculo, sizeof(Veiculo), 1, file)) {
+        if (veiculo.id == id) {
+            found = 1;
+            printf("Veículo encontrado: %s\n", veiculo.modelo);
+            printf("Digite o novo modelo (ou pressione Enter para manter): ");
+            getchar(); // Limpa o buffer
+            char novoModelo[50];
+            fgets(novoModelo, 50, stdin);
+            if (strlen(novoModelo) > 1) {
+                novoModelo[strcspn(novoModelo, "\n")] = '\0'; // Remove o '\n'
+                strcpy(veiculo.modelo, novoModelo);
+            }
+
+            printf("Digite a nova placa (ou pressione Enter para manter): ");
+            char novaPlaca[10];
+            fgets(novaPlaca, 10, stdin);
+            if (strlen(novaPlaca) > 1) {
+                novaPlaca[strcspn(novaPlaca, "\n")] = '\0'; // Remove o '\n'
+                strcpy(veiculo.placa, novaPlaca);
+            }
+
+            printf("Digite o novo ano de fabricação (ou 0 para manter): ");
+            int novoAno;
+            scanf("%d", &novoAno);
+            if (novoAno > 0) {
+                veiculo.ano = novoAno;
+            }
+
+            fseek(file, -sizeof(Veiculo), SEEK_CUR); // Move o ponteiro para a posição do veículo
+            fwrite(&veiculo, sizeof(Veiculo), 1, file);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Veículo com ID %d não encontrado.\n", id);
+    }
+
+    fclose(file);
+}
+
+// Função para excluir um veículo pelo ID
+void excluirVeiculo() {
+    FILE *file = fopen(FILENAME, "r+b");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int id;
+    printf("Digite o ID do veículo a ser excluído: ");
+    scanf("%d", &id);
+
+    FILE *tempFile = fopen("temp.dat", "wb");
+    if (tempFile == NULL) {
+        printf("Erro ao criar arquivo temporário.\n");
+        fclose(file);
+        return;
+    }
+
+    Veiculo veiculo;
+    int found = 0;
+    while (fread(&veiculo, sizeof(Veiculo), 1, file)) {
+        if (veiculo.id != id) {
+            fwrite(&veiculo, sizeof(Veiculo), 1, tempFile);
+        } else {
+            found = 1;
+        }
+    }
+
+    fclose(file);
+    fclose(tempFile);
+
+    remove(FILENAME);
+    rename("temp.dat", FILENAME);
+
+    if (found) {
+        printf("Veículo excluído com sucesso.\n");
+    } else {
+        printf("Veículo com ID %d não encontrado.\n", id);
+    }
+}
+
+// Função para consultar as informações de um veículo pela placa
+void consultarVeiculo() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    char placa[10];
+    printf("Digite a placa do veículo a ser consultado: ");
+    getchar(); // Limpa o buffer
+    fgets(placa, 10, stdin);
+    placa[strcspn(placa, "\n")] = '\0'; // Remove o '\n' da string
+
+    Veiculo veiculo;
+    int found = 0;
+    while (fread(&veiculo, sizeof(Veiculo), 1, file)) {
+        if (strcmp(veiculo.placa, placa) == 0) {
+            found = 1;
+            printf("ID: %d\n", veiculo.id);
+            printf("Modelo: %s\n", veiculo.modelo);
+            printf("Placa: %s\n", veiculo.placa);
+            printf("Ano de Fabricação: %d\n", veiculo.ano);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Veículo com a placa %s não encontrado.\n", placa);
+    }
+
+    fclose(file);
+}
+
+// Função para listar todos os veículos cadastrados
+void listarVeiculos() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Veiculo veiculo;
+    int found = 0;
+    while (fread(&veiculo, sizeof(Veiculo), 1, file)) {
+        printf("ID: %d\n", veiculo.id);
+        printf("Modelo: %s\n", veiculo.modelo);
+        printf("Placa: %s\n", veiculo.placa);
+        printf("Ano de Fabricação: %d\n", veiculo.ano);
+        printf("----------------------------\n");
+        found = 1;
+    }
+
+    if (!found) {
+        printf("Nenhum veículo cadastrado.\n");
+    }
+
+    fclose(file);
+}
+
+int main() {
+    int opcao;
+
+    do {
+        printf("\nGestão de Concessionária de Veículos\n");
+        printf("1. Adicionar um novo veículo\n");
+        printf("2. Alterar os dados de um veículo\n");
+        printf("3. Excluir um veículo\n");
+        printf("4. Consultar informações de um veículo pela placa\n");
+        printf("5. Listar todos os veículos cadastrados\n");
+        printf("6. Sair\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1:
+                adicionarVeiculo();
+                break;
+            case 2:
+                alterarVeiculo();
+                break;
+            case 3:
+                excluirVeiculo();
+                break;
+            case 4:
+                consultarVeiculo();
+                break;
+            case 5:
+                listarVeiculos();
+                break;
+            case 6:
+                printf("Saindo...\n");
+                break;
+            default:
+                printf("Opção inválida!\n");
+                break;
+        }
+    } while (opcao != 6);
+
+    return 0;
+}
+
+
+QUESTAO 5:
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define FILENAME "acervo_filmes.dat"
+
+// Definição da estrutura Filme
+typedef struct {
+    int id;
+    char titulo[50];
+    char genero[20];
+    int ano;
+} Filme;
+
+// Função para adicionar um novo filme ao acervo
+void adicionarFilme() {
+    FILE *file = fopen(FILENAME, "ab");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Filme filme;
+    printf("Digite o ID do filme: ");
+    scanf("%d", &filme.id);
+    getchar(); // Limpa o buffer
+    printf("Digite o título do filme: ");
+    fgets(filme.titulo, 50, stdin);
+    filme.titulo[strcspn(filme.titulo, "\n")] = '\0'; // Remove o '\n' da string
+    printf("Digite o gênero do filme: ");
+    fgets(filme.genero, 20, stdin);
+    filme.genero[strcspn(filme.genero, "\n")] = '\0'; // Remove o '\n' da string
+    printf("Digite o ano de lançamento do filme: ");
+    scanf("%d", &filme.ano);
+
+    fwrite(&filme, sizeof(Filme), 1, file);
+    fclose(file);
+
+    printf("Filme adicionado com sucesso.\n");
+}
+
+// Função para alterar os dados de um filme
+void alterarFilme() {
+    FILE *file = fopen(FILENAME, "r+b");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int id;
+    printf("Digite o ID do filme a ser alterado: ");
+    scanf("%d", &id);
+
+    Filme filme;
+    int found = 0;
+    while (fread(&filme, sizeof(Filme), 1, file)) {
+        if (filme.id == id) {
+            found = 1;
+            printf("Filme encontrado: %s\n", filme.titulo);
+            printf("Digite o novo título (ou pressione Enter para manter): ");
+            getchar(); // Limpa o buffer
+            char novoTitulo[50];
+            fgets(novoTitulo, 50, stdin);
+            if (strlen(novoTitulo) > 1) {
+                novoTitulo[strcspn(novoTitulo, "\n")] = '\0'; // Remove o '\n'
+                strcpy(filme.titulo, novoTitulo);
+            }
+
+            printf("Digite o novo gênero (ou pressione Enter para manter): ");
+            char novoGenero[20];
+            fgets(novoGenero, 20, stdin);
+            if (strlen(novoGenero) > 1) {
+                novoGenero[strcspn(novoGenero, "\n")] = '\0'; // Remove o '\n'
+                strcpy(filme.genero, novoGenero);
+            }
+
+            printf("Digite o novo ano de lançamento (ou 0 para manter): ");
+            int novoAno;
+            scanf("%d", &novoAno);
+            if (novoAno > 0) {
+                filme.ano = novoAno;
+            }
+
+            fseek(file, -sizeof(Filme), SEEK_CUR); // Move o ponteiro para a posição do filme
+            fwrite(&filme, sizeof(Filme), 1, file);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Filme com ID %d não encontrado.\n", id);
+    }
+
+    fclose(file);
+}
+
+// Função para excluir um filme pelo ID
+void excluirFilme() {
+    FILE *file = fopen(FILENAME, "r+b");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int id;
+    printf("Digite o ID do filme a ser excluído: ");
+    scanf("%d", &id);
+
+    FILE *tempFile = fopen("temp.dat", "wb");
+    if (tempFile == NULL) {
+        printf("Erro ao criar arquivo temporário.\n");
+        fclose(file);
+        return;
+    }
+
+    Filme filme;
+    int found = 0;
+    while (fread(&filme, sizeof(Filme), 1, file)) {
+        if (filme.id != id) {
+            fwrite(&filme, sizeof(Filme), 1, tempFile);
+        } else {
+            found = 1;
+        }
+    }
+
+    fclose(file);
+    fclose(tempFile);
+
+    remove(FILENAME);
+    rename("temp.dat", FILENAME);
+
+    if (found) {
+        printf("Filme excluído com sucesso.\n");
+    } else {
+        printf("Filme com ID %d não encontrado.\n", id);
+    }
+}
+
+// Função para consultar as informações de um filme pelo ID
+void consultarFilme() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int id;
+    printf("Digite o ID do filme a ser consultado: ");
+    scanf("%d", &id);
+
+    Filme filme;
+    int found = 0;
+    while (fread(&filme, sizeof(Filme), 1, file)) {
+        if (filme.id == id) {
+            found = 1;
+            printf("ID: %d\n", filme.id);
+            printf("Título: %s\n", filme.titulo);
+            printf("Gênero: %s\n", filme.genero);
+            printf("Ano de Lançamento: %d\n", filme.ano);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Filme com ID %d não encontrado.\n", id);
+    }
+
+    fclose(file);
+}
+
+// Função para listar todos os filmes cadastrados
+void listarFilmes() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Filme filme;
+    int found = 0;
+    while (fread(&filme, sizeof(Filme), 1, file)) {
+        printf("ID: %d\n", filme.id);
+        printf("Título: %s\n", filme.titulo);
+        printf("Gênero: %s\n", filme.genero);
+        printf("Ano de Lançamento: %d\n", filme.ano);
+        printf("----------------------------\n");
+        found = 1;
+    }
+
+    if (!found) {
+        printf("Nenhum filme cadastrado.\n");
+    }
+
+    fclose(file);
+}
+
+int main() {
+    int opcao;
+
+    do {
+        printf("\nGestão de Acervo de Filmes da Locadora\n");
+        printf("1. Adicionar um novo filme ao acervo\n");
+        printf("2. Alterar os dados de um filme\n");
+        printf("3. Excluir um filme\n");
+        printf("4. Consultar informações de um filme pelo ID\n");
+        printf("5. Listar todos os filmes cadastrados\n");
+        printf("6. Sair\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1:
+                adicionarFilme();
+                break;
+            case 2:
+                alterarFilme();
+                break;
+            case 3:
+                excluirFilme();
+                break;
+            case 4:
+                consultarFilme();
+                break;
+            case 5:
+                listarFilmes();
+                break;
+            case 6:
+                printf("Saindo...\n");
+                break;
+            default:
+                printf("Opção inválida!\n");
+                break;
+        }
+    } while (opcao != 6);
+
+    return 0;
+}
+
+
+QUESTAO 6:
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define FILENAME "cidades.txt"
+
+// Definição da estrutura Cidade
+typedef struct {
+    int codigo;
+    char nome[50];
+    char estado[30];
+    int populacao;
+} Cidade;
+
+// Função para adicionar uma nova cidade ao cadastro
+void incluirCidade() {
+    FILE *file = fopen(FILENAME, "a");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Cidade cidade;
+    printf("Digite o código da cidade: ");
+    scanf("%d", &cidade.codigo);
+    getchar(); // Limpar o buffer
+    printf("Digite o nome da cidade: ");
+    fgets(cidade.nome, 50, stdin);
+    cidade.nome[strcspn(cidade.nome, "\n")] = '\0'; // Remover '\n' da string
+    printf("Digite o estado da cidade: ");
+    fgets(cidade.estado, 30, stdin);
+    cidade.estado[strcspn(cidade.estado, "\n")] = '\0'; // Remover '\n' da string
+    printf("Digite a população da cidade: ");
+    scanf("%d", &cidade.populacao);
+
+    fprintf(file, "%d;%s;%s;%d\n", cidade.codigo, cidade.nome, cidade.estado, cidade.populacao);
+    fclose(file);
+
+    printf("Cidade adicionada com sucesso.\n");
+}
+
+// Função para alterar os dados de uma cidade
+void alterarCidade() {
+    FILE *file = fopen(FILENAME, "r+");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int codigo;
+    printf("Digite o código da cidade a ser alterada: ");
+    scanf("%d", &codigo);
+
+    Cidade cidade;
+    int found = 0;
+    while (fscanf(file, "%d;%49[^;];%29[^;];%d\n", &cidade.codigo, cidade.nome, cidade.estado, &cidade.populacao) != EOF) {
+        if (cidade.codigo == codigo) {
+            found = 1;
+            printf("Cidade encontrada: %s, %s, População: %d\n", cidade.nome, cidade.estado, cidade.populacao);
+            getchar(); // Limpar o buffer
+
+            printf("Digite o novo nome da cidade (ou pressione Enter para manter): ");
+            char novoNome[50];
+            fgets(novoNome, 50, stdin);
+            if (strlen(novoNome) > 1) {
+                novoNome[strcspn(novoNome, "\n")] = '\0'; // Remover '\n'
+                strcpy(cidade.nome, novoNome);
+            }
+
+            printf("Digite o novo estado da cidade (ou pressione Enter para manter): ");
+            char novoEstado[30];
+            fgets(novoEstado, 30, stdin);
+            if (strlen(novoEstado) > 1) {
+                novoEstado[strcspn(novoEstado, "\n")] = '\0'; // Remover '\n'
+                strcpy(cidade.estado, novoEstado);
+            }
+
+            printf("Digite a nova população da cidade (ou 0 para manter): ");
+            int novaPopulacao;
+            scanf("%d", &novaPopulacao);
+            if (novaPopulacao > 0) {
+                cidade.populacao = novaPopulacao;
+            }
+
+            // Voltar ao início do arquivo e sobrescrever os dados da cidade
+            FILE *tempFile = fopen("temp.txt", "w");
+            if (tempFile == NULL) {
+                printf("Erro ao criar arquivo temporário.\n");
+                fclose(file);
+                return;
+            }
+
+            FILE *originalFile = fopen(FILENAME, "r");
+            if (originalFile == NULL) {
+                printf("Erro ao reabrir o arquivo original.\n");
+                fclose(file);
+                fclose(tempFile);
+                return;
+            }
+
+            // Reescrever todas as cidades no arquivo temporário
+            while (fscanf(originalFile, "%d;%49[^;];%29[^;];%d\n", &cidade.codigo, cidade.nome, cidade.estado, &cidade.populacao) != EOF) {
+                if (cidade.codigo == codigo) {
+                    fprintf(tempFile, "%d;%s;%s;%d\n", cidade.codigo, cidade.nome, cidade.estado, cidade.populacao);
+                } else {
+                    fprintf(tempFile, "%d;%s;%s;%d\n", cidade.codigo, cidade.nome, cidade.estado, cidade.populacao);
+                }
+            }
+
+            fclose(originalFile);
+            fclose(tempFile);
+            remove(FILENAME);
+            rename("temp.txt", FILENAME);
+
+            printf("Cidade alterada com sucesso.\n");
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Cidade com código %d não encontrada.\n", codigo);
+    }
+
+    fclose(file);
+}
+
+// Função para excluir uma cidade pelo código
+void excluirCidade() {
+    FILE *file = fopen(FILENAME, "r");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int codigo;
+    printf("Digite o código da cidade a ser excluída: ");
+    scanf("%d", &codigo);
+
+    FILE *tempFile = fopen("temp.txt", "w");
+    if (tempFile == NULL) {
+        printf("Erro ao criar arquivo temporário.\n");
+        fclose(file);
+        return;
+    }
+
+    Cidade cidade;
+    int found = 0;
+    while (fscanf(file, "%d;%49[^;];%29[^;];%d\n", &cidade.codigo, cidade.nome, cidade.estado, &cidade.populacao) != EOF) {
+        if (cidade.codigo != codigo) {
+            fprintf(tempFile, "%d;%s;%s;%d\n", cidade.codigo, cidade.nome, cidade.estado, cidade.populacao);
+        } else {
+            found = 1;
+        }
+    }
+
+    fclose(file);
+    fclose(tempFile);
+
+    remove(FILENAME);
+    rename("temp.txt", FILENAME);
+
+    if (found) {
+        printf("Cidade excluída com sucesso.\n");
+    } else {
+        printf("Cidade com código %d não encontrada.\n", codigo);
+    }
+}
+
+// Função para consultar as informações de uma cidade pelo código
+void consultarCidade() {
+    FILE *file = fopen(FILENAME, "r");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int codigo;
+    printf("Digite o código da cidade a ser consultada: ");
+    scanf("%d", &codigo);
+
+    Cidade cidade;
+    int found = 0;
+    while (fscanf(file, "%d;%49[^;];%29[^;];%d\n", &cidade.codigo, cidade.nome, cidade.estado, &cidade.populacao) != EOF) {
+        if (cidade.codigo == codigo) {
+            found = 1;
+            printf("Cidade: %s\n", cidade.nome);
+            printf("Estado: %s\n", cidade.estado);
+            printf("População: %d\n", cidade.populacao);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Cidade com código %d não encontrada.\n", codigo);
+    }
+
+    fclose(file);
+}
+
+// Função para listar todas as cidades cadastradas
+void listarCidades() {
+    FILE *file = fopen(FILENAME, "r");
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    Cidade cidade;
+    int found = 0;
+    while (fscanf(file, "%d;%49[^;];%29[^;];%d\n", &cidade.codigo, cidade.nome, cidade.estado, &cidade.populacao) != EOF) {
+        printf("Código: %d\n", cidade.codigo);
+        printf("Nome: %s\n", cidade.nome);
+        printf("Estado: %s\n", cidade.estado);
+        printf("População: %d\n", cidade.populacao);
+        printf("----------------------------\n");
+        found = 1;
+    }
+
+    if (!found) {
+        printf("Nenhuma cidade cadastrada.\n");
+    }
+
+    fclose(file);
+}
+
+int main() {
+    int opcao;
+
+    do {
+        printf("\nGestão de Cadastro de Cidades\n");
+        printf("1. Incluir cidade\n");
+        printf("2. Alterar dados da cidade\n");
+        printf("3. Excluir cidade\n");
+        printf("4. Consultar cidade\n");
+        printf("5. Listar cidades\n");
+        printf("6. Sair\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1:
+                incluirCidade();
+                break;
+            case 2:
+                alterarCidade();
+                break;
+            case 3:
+                excluirCidade();
+                break;
+            case 4:
+                consultarCidade();
+                break;
+            case 5:
+                listarCidades();
+                break;
+            case 6:
+                printf("Saindo...\n");
+                break;
+            default:
+                printf("Opção inválida!\n");
+                break;
+        }
+    } while (opcao != 6);
+
+    return 0;
+}
